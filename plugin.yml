@@ -1,0 +1,8 @@
+name: WolfCommand
+main: me.puppyize.wolfcommand.WolfCommand
+version: 1.0
+
+commands:
+  wolf:
+    description: Command to force all personally tamed wolves to sit or stand
+    usage: /wolf [sit|stand]
