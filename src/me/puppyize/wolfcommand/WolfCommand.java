@@ -9,6 +9,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BlockIterator;
 
@@ -68,15 +69,23 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 	@EventHandler
 	public void attackDistantCreature(PlayerInteractEvent e) {
 		Player p = e.getPlayer();
-		if (p.getItemInHand().getType() == Material.STICK
-				&& (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR)) {
+		ItemStack itemInHand = p.getItemInHand(); 
+		if (itemInHand.getType() == Material.STICK) {
 			LivingEntity attackMe = this.getTarget(p, 40);
 			ArrayList<Wolf> wolves = getPlayerWolves(p);
-			if (attackMe == null || wolves.contains(attackMe))
-				return;
-			for (Wolf w : getPlayerWolves(p)) {
-				if (!w.isSitting()) {
-					w.setTarget(attackMe);
+			if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
+				
+				if (attackMe == null || wolves.contains(attackMe)) {
+					return;
+				}
+				for (Wolf w : getPlayerWolves(p)) {
+					if (!w.isSitting()) {
+						w.setTarget(attackMe);
+					}
+				}
+			} else if ( e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR) {
+				for (Wolf w : getPlayerWolves(p)) {
+					w.setTarget(null);
 				}
 			}
 		}
