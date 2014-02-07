@@ -73,17 +73,9 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 			LivingEntity attackMe = this.getTarget(p, 40);
 			if (attackMe == null)
 				return;
-
 			for (Wolf w : getPlayerWolves(p)) {
 				if (!w.isSitting()) {
-					Double h = w.getHealth();
-					// setTarget() doesn't work, setting a 0 damage against the
-					// wolf triggers same effect
-					// TODO Disable / suppress damage animation/knockback on
-					// Wolves when triggered (don't trigger red flash)
-					w.teleport(attackMe);
-					w.damage(0, attackMe);
-					w.setHealth(h);
+					w.setTarget(attackMe);
 				}
 			}
 		}
