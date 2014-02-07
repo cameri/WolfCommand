@@ -71,7 +71,8 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 		if (p.getItemInHand().getType() == Material.STICK
 				&& (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR)) {
 			LivingEntity attackMe = this.getTarget(p, 40);
-			if (attackMe == null)
+			ArrayList<Wolf> wolves = getPlayerWolves(p);
+			if (attackMe == null || wolves.contains(attackMe))
 				return;
 			for (Wolf w : getPlayerWolves(p)) {
 				if (!w.isSitting()) {
