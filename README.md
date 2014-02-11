@@ -1,5 +1,5 @@
 # Wolf Command - Serious Taming #
-## Latest: 1.4 ##
+## Latest: 1.6 ##
 
 This plugin allows users to command their wolves better than basic Minecraft. It gives players the ability to tell all their wolves to sit/stand as well as attack monsters at range by swinging a stick at them. 
 When left-click with a stick at a monster within 40 blocks, your wolves will target the selected mob and start attacking. Right clicking will cancel the targeting.   
