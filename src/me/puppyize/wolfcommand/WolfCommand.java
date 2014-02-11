@@ -3,15 +3,12 @@ package me.puppyize.wolfcommand;
 import java.util.*;
 
 import org.bukkit.*;
-import org.bukkit.block.*;
 import org.bukkit.command.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.BlockIterator;
 
 /**
  * <p>
@@ -27,7 +24,8 @@ import org.bukkit.util.BlockIterator;
  * @author Puppy Firelyte <mc@puppyize.me>
  */
 public final class WolfCommand extends JavaPlugin implements Listener {
-
+	final Double ATTACK_RANGE = 40D;
+	
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
 	}
@@ -44,14 +42,14 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 			if (sender instanceof Player) {
 				switch (args[0].toLowerCase()) {
 				case "sit":
-					for (Wolf w : getPlayerWolves((Player) sender)) {
+					for (Wolf w : getPlayerWolves((Player) sender, ATTACK_RANGE)) {
 						if (!w.isSitting()) {
 							w.setSitting(true);
 						}
 					}
 					return true;
 				case "stand":
-					for (Wolf w : getPlayerWolves((Player) sender)) {
+					for (Wolf w : getPlayerWolves((Player) sender, ATTACK_RANGE)) {
 						if (w.isSitting()) {
 							w.setSitting(false);
 						}
@@ -69,35 +67,30 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 	@EventHandler
 	public void attackDistantCreature(PlayerInteractEvent e) {
 		Player p = e.getPlayer();
-		ItemStack itemInHand = p.getItemInHand(); 
-		if (itemInHand.getType() == Material.STICK) {
-			LivingEntity attackMe = this.getTarget(p, 40);
-			ArrayList<Wolf> wolves = getPlayerWolves(p);
-			if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
+		if (p.getItemInHand().getType() == Material.STICK) {
+			LivingEntity target = null;
+			Action a = e.getAction();
+			
+			if (a == Action.LEFT_CLICK_AIR || a == Action.LEFT_CLICK_BLOCK) {
+				target = this.getTarget(p, ATTACK_RANGE);
+			} else if (!(a == Action.RIGHT_CLICK_AIR  || a == Action.RIGHT_CLICK_BLOCK)) {
+				return;
+			}
 				
-				if (attackMe == null || wolves.contains(attackMe)) {
-					return;
-				}
-				for (Wolf w : getPlayerWolves(p)) {
-					if (!w.isSitting()) {
-						w.setTarget(attackMe);
-					}
-				}
-			} else if ( e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR) {
-				for (Wolf w : getPlayerWolves(p)) {
-					w.setTarget(null);
+			for (Wolf w : getPlayerWolves(p, ATTACK_RANGE)) {
+				if (!w.isSitting()) {
+					w.setTarget(target);
 				}
 			}
 		}
 	}
-
-	private ArrayList<Wolf> getPlayerWolves(Player p) {
-		ArrayList<Wolf> entities = new ArrayList<Wolf>();
-		for (World w : Bukkit.getWorlds()) {
-			for (Entity e : w.getEntitiesByClass(Wolf.class)) {
-				if (((Tameable) e).isTamed()
-						&& ((Tameable) e).getOwner().getName()
-								.equals(p.getName())) {
+	
+	private List<Wolf> getPlayerWolves(Player p, Double range) {
+		List<Wolf> entities = new ArrayList<Wolf>();
+		for (Entity e : p.getNearbyEntities(range, range, range)) {
+			if (e instanceof Wolf && e instanceof Tameable) {
+				Tameable t = (Tameable) e;
+				if (t.isTamed() && t.getOwner() == p) {
 					entities.add((Wolf) e);
 				}
 			}
@@ -105,40 +98,51 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 		return entities;
 	}
 
-	private LivingEntity getTarget(Player p, int range) {
+	private LivingEntity getTarget(Player observer, Double range) {
+		
+		Location observerPos = observer.getEyeLocation();
+        Vector3D observerDir = new Vector3D(observerPos.getDirection());
 
-		List<Entity> nearbyE = p.getNearbyEntities(range, range, range);
-		ArrayList<LivingEntity> livingE = new ArrayList<LivingEntity>();
-		BlockIterator bI = new BlockIterator(p, range);
-		Block b;
-		Location loc;
-		int bx, by, bz;
-		double ex, ey, ez;
+        Vector3D observerStart = new Vector3D(observerPos);
+        Vector3D observerEnd = observerStart.add(observerDir.multiply(range));
 
-		for (Entity e : nearbyE) {
-			if (e instanceof LivingEntity) {
-				livingE.add((LivingEntity) e);
-			}
-		}
+        Entity targetEntity = null;
 
-		while (bI.hasNext()) {
-			b = bI.next();
-			bx = b.getX();
-			by = b.getY();
-			bz = b.getZ();
-			for (LivingEntity e : livingE) {
-				loc = e.getLocation();
-				ex = loc.getX();
-				ey = loc.getY();
-				ez = loc.getZ();
-				if ((bx - .75 <= ex && ex <= bx + 1.75)
-						&& (bz - .75 <= ez && ez <= bz + 1.75)
-						&& (by - 1 <= ey && ey <= by + 2.5)) {
-					return e;
-				}
-			}
-		}
-		return null;
+        // Loop through nearby entities (may be slow if too many around)
+        for (Entity entity : observer.getNearbyEntities(range, range, range)) {
+        	// Skip not living entities
+        	if (!(entity instanceof LivingEntity)) {
+        		continue;
+        	}
+
+        	// Skip our own wolves
+        	if (entity instanceof Tameable && entity instanceof Wolf) {
+        		Tameable t = (Tameable) entity;
+        		if (t.isTamed() && t.getOwner() == observer) {
+        			continue;
+        		}
+        	}
+
+        	// We can't attack what we can't see
+        	if (!observer.hasLineOfSight(entity)) {
+        		continue;
+        	}
+
+        	// Bukkit API does not export an axis-aligned bounding box, so we'll settle for this
+        	// Bounding box is set to 1 block in width and 1.67 blocks high from entity's center
+        	Vector3D targetPos = new Vector3D(entity.getLocation());
+            Vector3D minimum = targetPos.add(-0.5, 0, -0.5);
+            Vector3D maximum = targetPos.add(0.5, 1.67, 0.5);
+
+            if (entity != observer && Vector3D.hasIntersection(observerStart, observerEnd, minimum, maximum)) {
+            	// Get closest living entity on vector
+                if (targetEntity == null ||
+                	targetEntity.getLocation().distanceSquared(observerPos) > entity.getLocation().distanceSquared(observerPos)) {
+                    targetEntity = entity;
+                }
+            }
+        }
+        return (LivingEntity) targetEntity;
 	}
 
 }
