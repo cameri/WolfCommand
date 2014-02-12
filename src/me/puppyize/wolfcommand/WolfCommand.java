@@ -17,8 +17,8 @@ import org.bukkit.plugin.java.JavaPlugin;
  * </p>
  * <p>
  * Typing in "/wolf sit" will force all personally tamed wolves to sit;
- * "/wolf stand" to stand.</br>While holding a stick, clicking on a mob or
- * player will force all tamed wolves to attack.
+ * "/wolf stand" to stand.</br>While holding a stick, left clicking on a mob or
+ * player will force all tamed wolves to attack. right clicking will cancel the attack.
  * </p>
  * 
  * @author Puppy Firelyte <mc@puppyize.me>
