@@ -38,7 +38,6 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 			if (args.length != 1)
 				return false;
 			if (sender instanceof Player) {
-				
 				WolfPlayer wp = new WolfPlayer((Player) sender);
 				switch (args[0].toLowerCase()) {
 					case "sit":
@@ -74,7 +73,4 @@ public final class WolfCommand extends JavaPlugin implements Listener {
 			wp.setTarget(target);
 		}
 	}
-	
-	
-
 }
